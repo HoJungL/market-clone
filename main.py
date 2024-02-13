@@ -11,55 +11,6 @@ cur = con.cursor()
 
 app = FastAPI()
 
-SERCRET = "super-coding"
-manager = LoginManager(SERCRET, '/login')
-
-
-@manager.user_loader()
-def query_user(data):
-    WHERE_STATEMENT = f'id="{data}"'
-    if type(data) == dict:
-        WHERE_STATEMENT = f'id="{data["id"]}"'
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-    user = cur.execute(f"""
-                       SELECT * from users WHERE {WHERE_STATEMENT}
-                       """).fetchone()
-    return user
-
-
-@app.post('/login')
-def login(id: Annotated[str, Form()],
-          password: Annotated[str, Form()]):
-    user = query_user(id)
-    if not user:
-        raise InvalidCredentialsException
-    elif password != user['password']:
-        raise InvalidCredentialsException
-
-    access_token = manager.create_access_token(data={
-        'sub': {
-            'id': user['id'],
-            'name': user['name'],
-            'email': user['email']
-        }
-    })
-
-    return {'access_token': access_token}
-
-
-@app.post('/signup')
-def signup(id: Annotated[str, Form()],
-           password: Annotated[str, Form()],
-           name: Annotated[str, Form()],
-           email: Annotated[str, Form()]):
-    cur.execute(f"""
-                INSERT INTO users(id,name,email,password)
-                VALUES ('{id}','{name}','{email}','{password}')
-                """)
-    con.commit()
-    return '200'
-
 
 @app.post('/items')
 async def create_item(image: UploadFile,
